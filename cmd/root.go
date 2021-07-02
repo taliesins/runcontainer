@@ -8,6 +8,7 @@ import (
 	"github.com/taliesins/runcontainer/runcontainer"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
 var cfgFile string
@@ -124,8 +125,19 @@ func initConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
+		// Search from current working directory and up for a file with name ".runcontainer" (without extension).
+		oldWorkingDirectory := ""
+		for {
+			viper.AddConfigPath(workingDirectory)
+			oldWorkingDirectory = workingDirectory
+			workingDirectory = filepath.Dir(workingDirectory)
+
+			if workingDirectory == "" || workingDirectory == "." || oldWorkingDirectory == workingDirectory {
+				break
+			}
+		}
+
 		// Search config in home directory with name ".runcontainer" (without extension).
-		viper.AddConfigPath(workingDirectory)
 		viper.AddConfigPath(home)
 		viper.SetConfigType("json")
 		viper.SetConfigName(".runcontainer")
