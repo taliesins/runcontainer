@@ -12,6 +12,7 @@ import (
 )
 
 var cfgFile string
+var cfgProfile string
 
 
 // rootCmd represents the base command when called without any subcommands
@@ -51,7 +52,7 @@ Map env variables into container
 			os.Exit(1)
 		}
 
-		profile, _:= cmd.Flags().GetString("profile")
+		profile := cfgProfile
 		if profile == "" {
 			profile = dockerConfigurations.DefaultProfile
 		}
@@ -76,6 +77,25 @@ Map env variables into container
 		if dockerConfiguration.Environment == nil {
 			dockerConfiguration.Environment = map[string]string{}
 		}
+		dockerConfiguration.Environment["RUNCONTAINER_PROFILE"] = profile
+		dockerConfiguration.Environment["RUNCONTAINER_CONFIGURATIONFILENAME"] = dockerConfigurationsFileName
+
+		workingDirectory, err := os.Getwd()
+
+
+		// Search from current working directory and up for a file with name ".runcontainer" (without extension).
+		oldWorkingDirectory := ""
+		for {
+			viper.AddConfigPath(workingDirectory)
+			oldWorkingDirectory = workingDirectory
+			workingDirectory = filepath.Dir(workingDirectory)
+
+			if workingDirectory == "" || workingDirectory == "." || oldWorkingDirectory == workingDirectory {
+				break
+			}
+		}
+
+
 		if dockerConfiguration.MountPoint == "" {
 			dockerConfiguration.MountPoint = "current_sources"
 		}
@@ -108,7 +128,7 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is '$CWD/.runcontainer.json,$HOME/.runcontainer.json')")
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "profile", "", "profile to use (default is 'default')")
+	rootCmd.PersistentFlags().StringVar(&cfgProfile, "profile", "", "profile to use (default is 'default')")
 }
 
 // initConfig reads in config file and ENV variables if set.
